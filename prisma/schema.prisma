@@ -1,0 +1,670 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum AcademicYearStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  ARCHIVED
+}
+
+enum TermStatus {
+  DRAFT
+  MARK_ENTRY
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  FINALIZED
+  PUBLISHED
+  REOPENED
+  CLOSED
+}
+
+enum StudentStatus {
+  ACTIVE
+  ALUMNI
+  SUSPENDED
+  WITHDRAWN
+  TRANSFERRED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  WITHDRAWN
+  TRANSFERRED
+}
+
+enum AssessmentStatus {
+  DRAFT
+  OPEN
+  SUBMITTED
+  LOCKED
+}
+
+enum ResultStatus {
+  DRAFT
+  UNDER_REVIEW
+  APPROVED
+  FINALIZED
+  PUBLISHED
+  REOPENED
+  SUPERSEDED
+}
+
+enum MarkCompletionStatus {
+  COMPLETE
+  INCOMPLETE
+  EXEMPT
+  ABSENT
+  WITHHELD
+}
+
+enum RankingMethod {
+  DENSE_RANK
+  STANDARD_RANK
+  ORDINAL_RANK
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum SMSDeliveryStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+}
+
+// ==========================================
+// 1. SCHOOL PROFILE & SYSTEM SETTINGS
+// ==========================================
+
+model SchoolProfile {
+  id                     String   @id @default(uuid())
+  schoolName             String   @map("school_name")
+  schoolCode             String   @unique @map("school_code")
+  crestUrl               String?  @map("crest_url")
+  motto                  String?
+  postalAddress          String?  @map("postal_address")
+  email                  String?
+  phone                  String?
+  headmasterSignatureUrl String?  @map("headmaster_signature_url")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  @@map("school_profiles")
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String   // JSON or string value
+  description String?
+  category    String   @default("GENERAL") // GENERAL, ACADEMIC, GRADING, NOTIFICATION, SECURITY
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
+
+// ==========================================
+// 2. AUTHENTICATION & USERS
+// ==========================================
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  email        String?  @unique
+  passwordHash String   @map("password_hash")
+  displayName  String   @map("display_name")
+  phone        String?  @map("phone")
+  status       String   @default("ACTIVE") // ACTIVE, SUSPENDED, INACTIVE
+  hasCompletedOnboarding Boolean   @default(false) @map("has_completed_onboarding")
+  onboardedAt            DateTime? @map("onboarded_at")
+  mustChangePassword     Boolean   @default(true)  @map("must_change_password")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  userRoles           UserRole[]
+  classesSupervised   Class[]              @relation("ClassTeacher")
+  subjectAllocations  SubjectAllocation[]  @relation("AssignedTeacher")
+  createdAssessments  Assessment[]         @relation("AssessmentCreator")
+  lockedAssessments   Assessment[]         @relation("AssessmentLocker")
+  enteredScores       StudentAssessmentScore[] @relation("ScoreCreator")
+  updatedScores       StudentAssessmentScore[] @relation("ScoreUpdater")
+  finalizedTerms      Term[]               @relation("TermFinalizer")
+  publishedTerms      Term[]               @relation("TermPublisher")
+  submittedTerms      Term[]               @relation("TermSubmitter")
+  approvedTerms       Term[]               @relation("TermApprover")
+  auditLogs           AuditLog[]
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique // SUPER_ADMIN, HEADMASTER, EXAM_OFFICER, CLASS_TEACHER, SUBJECT_TEACHER, STUDENT, GUARDIAN
+  description String?
+  userRoles   UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  userId String @map("user_id")
+  roleId String @map("role_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+// ==========================================
+// 3. ACADEMIC STRUCTURE
+// ==========================================
+
+model AcademicYear {
+  id        String             @id @default(uuid())
+  name      String             @unique // e.g. "2026/2027"
+  startDate DateTime           @map("start_date")
+  endDate   DateTime           @map("end_date")
+  isCurrent Boolean            @default(false) @map("is_current")
+  status    AcademicYearStatus @default(DRAFT)
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+
+  terms            Term[]
+  enrollments      StudentEnrollment[]
+  gradingPolicies  GradingPolicy[]
+
+  @@map("academic_years")
+}
+
+model Term {
+  id                  String     @id @default(uuid())
+  academicYearId      String     @map("academic_year_id")
+  name                String     // e.g. "First Term", "Second Term"
+  termSequence        Int        @map("term_sequence") // 1, 2, 3
+  startDate           DateTime   @map("start_date")
+  endDate             DateTime   @map("end_date")
+  nextTermResumption  DateTime?  @map("next_term_resumption")
+  totalSchoolDays     Int        @default(60) @map("total_school_days")
+  status              TermStatus @default(DRAFT)
+  
+  submittedAt DateTime? @map("submitted_at")
+  submittedById String? @map("submitted_by")
+  approvedAt  DateTime? @map("approved_at")
+  approvedById  String? @map("approved_by")
+  finalizedAt DateTime? @map("finalized_at")
+  finalizedById String? @map("finalized_by")
+  publishedAt DateTime? @map("published_at")
+  publishedById String? @map("published_by")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Restrict)
+  submittedBy  User?        @relation("TermSubmitter", fields: [submittedById], references: [id], onDelete: SetNull)
+  approvedBy   User?        @relation("TermApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  finalizedBy  User?        @relation("TermFinalizer", fields: [finalizedById], references: [id], onDelete: SetNull)
+  publishedBy  User?        @relation("TermPublisher", fields: [publishedById], references: [id], onDelete: SetNull)
+
+  subjectAllocations SubjectAllocation[]
+  assessments        Assessment[]
+  evaluations        StudentTermEvaluation[]
+  termResults        TermResult[]
+
+  @@unique([academicYearId, termSequence])
+  @@map("terms")
+}
+
+model Class {
+  id             String   @id @default(uuid())
+  name           String   @unique // e.g. "Basic 8A", "JHS 2 Green"
+  gradeLevel     String   @map("grade_level") // e.g. "Basic 8"
+  classTeacherId String?  @map("class_teacher_id")
+  status         String   @default("ACTIVE")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  classTeacher       User?               @relation("ClassTeacher", fields: [classTeacherId], references: [id], onDelete: SetNull)
+  enrollments        StudentEnrollment[]
+  subjectAllocations SubjectAllocation[]
+  assessments        Assessment[]
+
+  @@map("classes")
+}
+
+model Subject {
+  id          String   @id @default(uuid())
+  name        String   // e.g. "Mathematics", "Integrated Science"
+  code        String   @unique // e.g. "MTH", "SCI"
+  isElective  Boolean  @default(false) @map("is_elective")
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  subjectAllocations        SubjectAllocation[]
+  assessments               Assessment[]
+  studentSubjectEnrollments StudentSubjectEnrollment[]
+  termResultSubjects        TermResultSubject[]
+
+  @@map("subjects")
+}
+
+model SubjectAllocation {
+  id        String   @id @default(uuid())
+  termId    String   @map("term_id")
+  classId   String   @map("class_id")
+  subjectId String   @map("subject_id")
+  teacherId String   @map("teacher_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  term    Term    @relation(fields: [termId], references: [id], onDelete: Restrict)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Restrict)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  teacher User    @relation("AssignedTeacher", fields: [teacherId], references: [id], onDelete: Restrict)
+
+  @@unique([termId, classId, subjectId])
+  @@map("subject_allocations")
+}
+
+// ==========================================
+// 4. STUDENTS, ENROLLMENTS & GUARDIANS
+// ==========================================
+
+model Student {
+  id              String        @id @default(uuid())
+  studentIdNumber String        @unique @map("student_id_number") // e.g. "STU-2026-001"
+  firstName       String        @map("first_name")
+  middleName      String?       @map("middle_name")
+  lastName        String        @map("last_name")
+  gender          String        // "MALE", "FEMALE"
+  dateOfBirth     DateTime?     @map("date_of_birth")
+  photoUrl        String?       @map("photo_url")
+  enrollmentDate  DateTime      @default(now()) @map("enrollment_date")
+  status          StudentStatus @default(ACTIVE)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  enrollments      StudentEnrollment[]
+  studentGuardians StudentGuardian[]
+
+  @@map("students")
+}
+
+model StudentEnrollment {
+  id             String           @id @default(uuid())
+  studentId      String           @map("student_id")
+  academicYearId String           @map("academic_year_id")
+  classId        String           @map("class_id")
+  rollNumber     String?          @map("roll_number")
+  status         EnrollmentStatus @default(ACTIVE)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  student          Student                    @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  academicYear     AcademicYear               @relation(fields: [academicYearId], references: [id], onDelete: Restrict)
+  class            Class                      @relation(fields: [classId], references: [id], onDelete: Restrict)
+  subjectRegistrations StudentSubjectEnrollment[]
+  assessmentScores StudentAssessmentScore[]
+  evaluations      StudentTermEvaluation[]
+  termResults      TermResult[]
+
+  @@unique([studentId, academicYearId])
+  @@map("student_enrollments")
+}
+
+model StudentSubjectEnrollment {
+  id                  String   @id @default(uuid())
+  studentEnrollmentId String   @map("student_enrollment_id")
+  subjectId           String   @map("subject_id")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  enrollment StudentEnrollment @relation(fields: [studentEnrollmentId], references: [id], onDelete: Restrict)
+  subject    Subject           @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+
+  @@unique([studentEnrollmentId, subjectId])
+  @@map("student_subject_enrollments")
+}
+
+model Guardian {
+  id           String   @id @default(uuid())
+  name         String
+  phone        String
+  email        String?
+  relationship String   // e.g. "Father", "Mother", "Guardian"
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  studentGuardians StudentGuardian[]
+
+  @@map("guardians")
+}
+
+model StudentGuardian {
+  studentId  String  @map("student_id")
+  guardianId String  @map("guardian_id")
+  isPrimary  Boolean @default(false) @map("is_primary")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  student  Student  @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  guardian Guardian @relation(fields: [guardianId], references: [id], onDelete: Restrict)
+
+  @@id([studentId, guardianId])
+  @@map("student_guardians")
+}
+
+// ==========================================
+// 5. GRADING POLICIES & COMPONENTS
+// ==========================================
+
+model GradingPolicy {
+  id             String        @id @default(uuid())
+  name           String        // e.g. "Standard Terminal Grading Policy"
+  academicYearId String?       @map("academic_year_id")
+  rankingMethod  RankingMethod @default(DENSE_RANK) @map("ranking_method")
+  status         String        @default("ACTIVE")
+  version        Int           @default(1)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  academicYear AcademicYear?      @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
+  components   GradingComponent[]
+  gradeBands   GradeBand[]
+
+  @@map("grading_policies")
+}
+
+model GradingComponent {
+  id              String   @id @default(uuid())
+  gradingPolicyId String   @map("grading_policy_id")
+  name            String   // e.g. "Continuous Assessment", "Terminal Examination"
+  code            String   // "CA", "EXAM"
+  weight          Float    // e.g. 30.0, 70.0 (Sum must equal 100.0)
+  componentType   String   @default("STANDARD") // "CA", "EXAM"
+  sortOrder       Int      @default(1) @map("sort_order")
+
+  gradingPolicy GradingPolicy        @relation(fields: [gradingPolicyId], references: [id], onDelete: Cascade)
+  categories    AssessmentCategory[]
+
+  @@map("grading_components")
+}
+
+model AssessmentCategory {
+  id          String   @id @default(uuid())
+  componentId String   @map("component_id")
+  name        String   // "Quiz", "Class Test", "Assignment", "Project", "Examination"
+  isSummative Boolean  @default(false) @map("is_summative")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  component   GradingComponent @relation(fields: [componentId], references: [id], onDelete: Restrict)
+  assessments Assessment[]
+
+  @@map("assessment_categories")
+}
+
+model GradeBand {
+  id              String  @id @default(uuid())
+  gradingPolicyId String  @map("grading_policy_id")
+  grade           String  // "A+", "A", "B", "C", "D", "E", "F"
+  minimumScore    Float   @map("minimum_score") // e.g. 80.0
+  maximumScore    Float   @map("maximum_score") // e.g. 100.0
+  gradePoint      Float   @map("grade_point")   // e.g. 4.0, 1.0
+  interpretation  String  // "Excellent", "Very Good", "Credit", "Pass", "Fail"
+  sortOrder       Int     @default(1) @map("sort_order")
+
+  gradingPolicy GradingPolicy @relation(fields: [gradingPolicyId], references: [id], onDelete: Cascade)
+
+  @@map("grade_bands")
+}
+
+// ==========================================
+// 6. OPERATIONAL ASSESSMENTS & SCORES
+// ==========================================
+
+model Assessment {
+  id               String           @id @default(uuid())
+  termId           String           @map("term_id")
+  classId          String           @map("class_id")
+  subjectId        String           @map("subject_id")
+  categoryId       String           @map("category_id")
+  title            String           // e.g. "Mid-term Class Test"
+  maxScore         Float            @map("max_score") // e.g. 20.0, 50.0, 100.0
+  dateAdministered DateTime?        @map("date_administered")
+  status           AssessmentStatus @default(OPEN)
+  
+  createdById String?   @map("created_by")
+  lockedAt    DateTime? @map("locked_at")
+  lockedById  String?   @map("locked_by")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  term      Term               @relation(fields: [termId], references: [id], onDelete: Restrict)
+  class     Class              @relation(fields: [classId], references: [id], onDelete: Restrict)
+  subject   Subject            @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  category  AssessmentCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdBy User?              @relation("AssessmentCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  lockedBy  User?              @relation("AssessmentLocker", fields: [lockedById], references: [id], onDelete: SetNull)
+
+  scores StudentAssessmentScore[]
+
+  @@map("assessments")
+}
+
+model StudentAssessmentScore {
+  id                  String               @id @default(uuid())
+  assessmentId        String               @map("assessment_id")
+  studentEnrollmentId String               @map("student_enrollment_id")
+  rawScore            Float?               @map("raw_score")
+  status              MarkCompletionStatus @default(COMPLETE)
+  
+  createdById String? @map("created_by")
+  updatedById String? @map("updated_by")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  assessment Assessment        @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  enrollment StudentEnrollment @relation(fields: [studentEnrollmentId], references: [id], onDelete: Restrict)
+  createdBy  User?             @relation("ScoreCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy  User?             @relation("ScoreUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([assessmentId, studentEnrollmentId])
+  @@map("student_assessment_scores")
+}
+
+// ==========================================
+// 7. STUDENT TERM EVALUATIONS
+// ==========================================
+
+model StudentTermEvaluation {
+  id                  String   @id @default(uuid())
+  studentEnrollmentId String   @map("student_enrollment_id")
+  termId              String   @map("term_id")
+  daysPresent         Int      @default(0) @map("days_present")
+  daysAbsent          Int      @default(0) @map("days_absent")
+  conductRating       String?  @map("conduct_rating") // "Excellent", "Good", "Satisfactory"
+  attitudeRating      String?  @map("attitude_rating")
+  interestRating      String?  @map("interest_rating")
+  classTeacherRemarks String?  @map("class_teacher_remarks")
+  headmasterRemarks   String?  @map("headmaster_remarks")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  enrollment StudentEnrollment @relation(fields: [studentEnrollmentId], references: [id], onDelete: Restrict)
+  term       Term              @relation(fields: [termId], references: [id], onDelete: Restrict)
+
+  @@unique([studentEnrollmentId, termId])
+  @@map("student_term_evaluations")
+}
+
+// ==========================================
+// 8. OFFICIAL IMMUTABLE RESULT SNAPSHOTS
+// ==========================================
+
+model TermResult {
+  id                  String       @id @default(uuid())
+  studentEnrollmentId String       @map("student_enrollment_id")
+  termId              String       @map("term_id")
+  
+  totalScore    Float        @map("total_score")
+  averageScore  Float        @map("average_score")
+  classPosition Int          @map("class_position")
+  cohortSize    Int          @map("cohort_size")
+  gpa           Float?       @map("gpa")
+  
+  status        ResultStatus @default(FINALIZED)
+  
+  finalizedAt   DateTime     @default(now()) @map("finalized_at")
+  finalizedById String?      @map("finalized_by")
+  publishedAt   DateTime?    @map("published_at")
+  publishedById String?      @map("published_by")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  enrollment       StudentEnrollment   @relation(fields: [studentEnrollmentId], references: [id], onDelete: Restrict)
+  term             Term                @relation(fields: [termId], references: [id], onDelete: Restrict)
+  subjects         TermResultSubject[]
+  generatedReports GeneratedReport[]
+
+  @@unique([studentEnrollmentId, termId])
+  @@map("term_results")
+}
+
+model TermResultSubject {
+  id           String @id @default(uuid())
+  termResultId String @map("term_result_id")
+  subjectId    String @map("subject_id")
+
+  caRawScore      Float? @map("ca_raw_score")
+  caMaxScore      Float? @map("ca_max_score")
+  caWeightedScore Float  @map("ca_weighted_score") // e.g. 24.0 / 30
+
+  examRawScore      Float? @map("exam_raw_score")
+  examMaxScore      Float? @map("exam_max_score")
+  examWeightedScore Float  @map("exam_weighted_score") // e.g. 49.0 / 70
+
+  totalScore     Float   @map("total_score") // e.g. 73.0
+  grade          String  // e.g. "B"
+  gradePoint     Float?  @map("grade_point") // e.g. 3.0
+  interpretation String? // "Very Good"
+  
+  subjectPosition Int?    @map("subject_position")
+  teacherRemarks  String? @map("teacher_remarks")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  termResult TermResult @relation(fields: [termResultId], references: [id], onDelete: Restrict)
+  subject    Subject    @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+
+  @@unique([termResultId, subjectId])
+  @@map("term_result_subjects")
+}
+
+// ==========================================
+// 9. REPORTS & CRYPTOGRAPHIC ACCESS TOKENS
+// ==========================================
+
+model GeneratedReport {
+  id             String    @id @default(uuid())
+  termResultId   String    @map("term_result_id")
+  tokenHash      String    @unique @map("token_hash") // SHA-256 hash of public token
+  pdfStorageUrl  String?   @map("pdf_storage_url")
+  reportVersion  Int       @default(1) @map("report_version")
+  downloadCount  Int       @default(0) @map("download_count")
+  
+  generatedAt    DateTime  @default(now()) @map("generated_at")
+  generatedById  String?   @map("generated_by")
+  expiresAt      DateTime? @map("expires_at")
+  revokedAt      DateTime? @map("revoked_at")
+  lastAccessedAt DateTime? @map("last_accessed_at")
+
+  isCurrent    Boolean   @default(true) @map("is_current")
+  supersededAt DateTime? @map("superseded_at")
+
+  termResult TermResult @relation(fields: [termResultId], references: [id], onDelete: Restrict)
+
+  @@map("generated_reports")
+}
+
+// ==========================================
+// 10. NOTIFICATION JOBS & SMS LOGS
+// ==========================================
+
+model NotificationJob {
+  id           String    @id @default(uuid())
+  type         String    @default("SMS") // "SMS", "EMAIL"
+  recipient    String    // Phone number or email
+  payload      String    // JSON or template payload
+  status       JobStatus @default(PENDING)
+  attempts     Int       @default(0)
+  availableAt  DateTime  @default(now()) @map("available_at")
+  processedAt  DateTime? @map("processed_at")
+  errorMessage String?   @map("error_message")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  smsLogs SmsLog[]
+
+  @@map("notification_jobs")
+}
+
+model SmsLog {
+  id                String            @id @default(uuid())
+  notificationJobId String?           @map("notification_job_id")
+  recipientPhone    String            @map("recipient_phone")
+  messageBody       String            @map("message_body")
+  gatewayReference  String?           @map("gateway_reference")
+  deliveryStatus    SMSDeliveryStatus @default(PENDING) @map("delivery_status")
+  dispatchedAt      DateTime          @default(now()) @map("dispatched_at")
+
+  job NotificationJob? @relation(fields: [notificationJobId], references: [id], onDelete: SetNull)
+
+  @@map("sms_logs")
+}
+
+// ==========================================
+// 11. AUDIT LOGS (APPEND-ONLY)
+// ==========================================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  action     String   // e.g. "CREATE_SCORE", "FINALIZE_TERM", "REOPEN_TERM"
+  entityType String   @map("entity_type") // "Term", "StudentAssessmentScore", etc.
+  entityId   String   @map("entity_id")
+  oldValues  String?  @map("old_values") // JSON representation
+  newValues  String?  @map("new_values") // JSON representation
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
