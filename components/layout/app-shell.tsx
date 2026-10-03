@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar"
 import { AppHeader } from "@/components/layout/app-header"
 import { useAuth } from "@/lib/auth/auth-context"
 import { SessionPayload } from "@/lib/auth/session"
+import { RouteLoadingIndicator } from "@/components/layout/route-loading-indicator"
 
 interface AppShellProps {
   children: React.ReactNode
@@ -55,6 +56,9 @@ export function AppShell({ children, school, initialSession }: AppShellProps) {
 
   return (
     <SidebarProvider defaultOpen={true}>
+      <React.Suspense fallback={null}>
+        <RouteLoadingIndicator />
+      </React.Suspense>
       <AppSidebar
         user={resolvedUser}
         school={{
