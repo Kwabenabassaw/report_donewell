@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
+import { getPublicSchoolProfileAction } from "@/app/actions/settings"
+
 const DEMO_ACCOUNTS = [
   {
     role: "Super Admin",
@@ -25,34 +27,6 @@ const DEMO_ACCOUNTS = [
     badge: "Full Control",
     icon: "👑",
   },
-  {
-    role: "Headmaster",
-    username: "headmaster",
-    password: "Password123!",
-    badge: "Approval & Finalization",
-    icon: "🎓",
-  },
-  {
-    role: "Exam Officer",
-    username: "exam_officer",
-    password: "Password123!",
-    badge: "Moderation & Review",
-    icon: "📋",
-  },
-  {
-    role: "Mr. Mensah (Teacher)",
-    username: "teacher_mensah",
-    password: "Password123!",
-    badge: "Math & Form Teacher",
-    icon: "📐",
-  },
-  {
-    role: "Ms. Asante (Teacher)",
-    username: "teacher_asante",
-    password: "Password123!",
-    badge: "Science Teacher",
-    icon: "🔬",
-  },
 ]
 
 export default function LoginPage() {
@@ -60,6 +34,31 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [schoolProfile, setSchoolProfile] = useState<{
+    schoolName: string
+    schoolCode: string
+    motto?: string | null
+    crestUrl?: string | null
+  }>({
+    schoolName: "Mountains High College and International School",
+    schoolCode: "MHCIS-001",
+    motto: "Knowledge, Integrity, and Excellence",
+    crestUrl: "/uploads/logos/school-logo-1790992124693.PNG",
+  })
+
+  React.useEffect(() => {
+    getPublicSchoolProfileAction().then((data) => {
+      if (data) {
+        setSchoolProfile({
+          schoolName: data.schoolName,
+          schoolCode: data.schoolCode,
+          motto: data.motto,
+          crestUrl: data.crestUrl,
+        })
+      }
+    })
+  }, [])
+
   const searchParams = useSearchParams()
   const redirect = searchParams.get("redirect") || "/dashboard"
 
@@ -109,13 +108,23 @@ export default function LoginPage() {
         {/* Left Side: School Branding & Portal Identity */}
         <div className="relative hidden md:flex flex-col justify-between bg-primary p-10 text-primary-foreground">
           <div className="flex flex-col gap-4">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm text-white shadow-inner">
-              <GraduationCap className="size-7" />
+            <div className="flex size-14 items-center justify-center rounded-2xl bg-white border border-white/20 text-white shadow-inner overflow-hidden">
+              {schoolProfile.crestUrl ? (
+                <img
+                  src={schoolProfile.crestUrl}
+                  alt={schoolProfile.schoolName}
+                  className="h-full w-full object-contain p-1"
+                />
+              ) : (
+                <div className="size-full bg-white/15 flex items-center justify-center">
+                  <GraduationCap className="size-7" />
+                </div>
+              )}
             </div>
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">St. Augustine Academy</h2>
+              <h2 className="text-2xl font-bold tracking-tight">{schoolProfile.schoolName}</h2>
               <p className="text-sm text-primary-foreground/80 mt-1 font-mono">
-                Knowledge, Character, and Excellence
+                {schoolProfile.motto || "Knowledge, Integrity, and Excellence"}
               </p>
             </div>
           </div>
@@ -130,15 +139,25 @@ export default function LoginPage() {
           </div>
 
           <div className="text-[11px] text-primary-foreground/60 font-mono">
-            School Code: SAA-GH • v2.0 Production System
+            School Code: {schoolProfile.schoolCode} • v2.0 Production System
           </div>
         </div>
 
         {/* Right Side: Login Form */}
         <div className="p-8 md:p-10 flex flex-col justify-between gap-6">
           <div className="flex flex-col gap-2">
-            <div className="md:hidden flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground mb-1">
-              <GraduationCap className="size-6" />
+            <div className="md:hidden flex size-12 items-center justify-center rounded-xl bg-white border border-border/60 shadow-xs mb-1 overflow-hidden">
+              {schoolProfile.crestUrl ? (
+                <img
+                  src={schoolProfile.crestUrl}
+                  alt="School Logo"
+                  className="h-full w-full object-contain p-0.5"
+                />
+              ) : (
+                <div className="size-full bg-primary text-primary-foreground flex items-center justify-center">
+                  <GraduationCap className="size-6" />
+                </div>
+              )}
             </div>
             <h1 className="text-2xl font-bold tracking-tight">Staff & Academic Portal</h1>
             <p className="text-sm text-muted-foreground">

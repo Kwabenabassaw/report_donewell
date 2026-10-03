@@ -134,3 +134,12 @@ export async function updateSchoolProfileSettingsAction(
     }
   }
 }
+
+export async function getPublicSchoolProfileAction() {
+  try {
+    return await SchoolProfileService.getProfile()
+  } catch {
+    return null
+  }
+}
+
