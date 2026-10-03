@@ -293,12 +293,22 @@ export function OnboardingWizard({ initialData }: OnboardingWizardProps) {
         {/* Brand Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-sm">
-              <GraduationCap className="size-6" />
+            <div className="size-10 rounded-xl bg-white border border-border/60 flex items-center justify-center shadow-xs overflow-hidden">
+              {roleContext.schoolProfile?.crestUrl ? (
+                <img
+                  src={roleContext.schoolProfile.crestUrl}
+                  alt={roleContext.schoolProfile.schoolName || "School Logo"}
+                  className="h-full w-full object-contain p-0.5"
+                />
+              ) : (
+                <div className="size-full bg-primary text-primary-foreground flex items-center justify-center">
+                  <GraduationCap className="size-6" />
+                </div>
+              )}
             </div>
             <div>
               <h2 className="text-base font-bold tracking-tight text-foreground">
-                {roleContext.schoolProfile?.schoolName || "School Terminal Management"}
+                {roleContext.schoolProfile?.schoolName || "Mountains High College and International School"}
               </h2>
               <p className="text-xs text-muted-foreground">First-Time Setup & Orientation</p>
             </div>

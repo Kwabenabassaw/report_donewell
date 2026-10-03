@@ -52,6 +52,7 @@ export default async function RootLayout({
     name: schoolProfile?.schoolName || "Mountains High College and International School",
     code: schoolProfile?.schoolCode || "MHCIS-001",
     motto: schoolProfile?.motto || "Knowledge, Integrity, and Excellence",
+    crestUrl: schoolProfile?.crestUrl || null,
     term: currentAcademicYear && activeTerm
       ? `${activeTerm.name} (${currentAcademicYear.name})`
       : "No Active Term Configured",

@@ -217,11 +217,12 @@ export function AppSidebar({
     name: "Mountains High College and International School",
     code: "MHCIS-001",
     term: "First Term (2026/2027)",
+    crestUrl: null,
   },
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   user?: UserProfileProps
-  school?: { name: string; code: string; term: string }
+  school?: { name: string; code: string; term: string; crestUrl?: string | null }
 }) {
   const pathname = usePathname()
   const activeRole = user?.role || "SUPER_ADMIN"
@@ -233,8 +234,18 @@ export function AppSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="sm" render={<Link href="/" />}>
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm shadow-primary/20">
-                <GraduationCap className="size-5 text-primary-foreground" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-border/60 shadow-xs overflow-hidden">
+                {school.crestUrl ? (
+                  <img
+                    src={school.crestUrl}
+                    alt={school.name}
+                    className="h-full w-full object-contain p-0.5"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-primary text-primary-foreground">
+                    <GraduationCap className="size-5 text-primary-foreground" />
+                  </div>
+                )}
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
                 <span className="truncate font-bold tracking-tight">{school.name}</span>

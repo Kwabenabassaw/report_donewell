@@ -14,6 +14,7 @@ interface AppShellProps {
     name: string
     code: string
     motto?: string
+    crestUrl?: string | null
     term: string
     termStatus: string
   }
@@ -60,6 +61,7 @@ export function AppShell({ children, school, initialSession }: AppShellProps) {
           name: school.name,
           code: school.code,
           term: school.term,
+          crestUrl: school.crestUrl,
         }}
       />
       <SidebarInset className="flex flex-col min-h-screen min-w-0">
