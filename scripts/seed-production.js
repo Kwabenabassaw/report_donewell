@@ -6,27 +6,27 @@ const prisma = new PrismaClient()
 async function main() {
   console.log("=========================================================")
   console.log("🌱 Seeding Important Production Data")
-  console.log("   School: Mountains High College and International School")
+  console.log("   School: DoneWell Academy")
   console.log("=========================================================\n")
 
   // 1. School Profile
   console.log("1. Setting up School Profile...")
   const schoolProfile = await prisma.schoolProfile.upsert({
-    where: { schoolCode: "MHCIS-001" },
+    where: { schoolCode: "DWA-001" },
     update: {
-      schoolName: "Mountains High College and International School",
+      schoolName: "DoneWell Academy",
       motto: "Knowledge, Integrity, and Excellence",
-      email: "info@mountainshighcollege.edu",
-      phone: "+233 20 000 0000",
-      postalAddress: "P.O. Box MC 100, Accra, Ghana",
+      email: "info@donewellacademy.edu",
+      phone: "+233 24 000 0000",
+      postalAddress: "P.O. Box DW 100, Accra, Ghana",
     },
     create: {
-      schoolName: "Mountains High College and International School",
-      schoolCode: "MHCIS-001",
+      schoolName: "DoneWell Academy",
+      schoolCode: "DWA-001",
       motto: "Knowledge, Integrity, and Excellence",
-      email: "info@mountainshighcollege.edu",
-      phone: "+233 20 000 0000",
-      postalAddress: "P.O. Box MC 100, Accra, Ghana",
+      email: "info@donewellacademy.edu",
+      phone: "+233 24 000 0000",
+      postalAddress: "P.O. Box DW 100, Accra, Ghana",
     },
   })
   console.log(`✅ School Profile configured: ${schoolProfile.schoolName} (${schoolProfile.schoolCode})`)
@@ -60,13 +60,13 @@ async function main() {
   const adminUser = await prisma.user.upsert({
     where: { username: "admin" },
     update: {
-      displayName: "System Administrator",
-      email: "admin@mountainshighcollege.edu",
+      displayName: "DoneWell Administrator",
+      email: "admin@donewellacademy.edu",
     },
     create: {
       username: "admin",
-      displayName: "System Administrator",
-      email: "admin@mountainshighcollege.edu",
+      displayName: "DoneWell Administrator",
+      email: "admin@donewellacademy.edu",
       passwordHash: adminPasswordHash,
       status: "ACTIVE",
       hasCompletedOnboarding: false,

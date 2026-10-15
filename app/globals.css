@@ -134,3 +134,60 @@
     @apply font-sans;
   }
 }
+
+/* ========================================================= */
+/* A4 PORTRAIT SINGLE-PAGE TERMINAL REPORT PRINT RULES       */
+/* ========================================================= */
+@page {
+  size: A4 portrait;
+  margin: 10mm 12mm;
+}
+
+@media print {
+  html, body {
+    width: 210mm !important;
+    height: 297mm !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide app sidebar, navigation, headers, and action toolbars */
+  aside, nav, header, [role="navigation"], .print\:hidden {
+    display: none !important;
+  }
+
+  /* Strict single-page A4 sheet container that fills the full page height */
+  .a4-report-sheet {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 275mm !important;
+    min-height: 275mm !important;
+    box-sizing: border-box !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  /* In multi-sheet batch printing, force each report to own single page */
+  .a4-page-break {
+    page-break-after: always !important;
+    break-after: page !important;
+    display: block !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+  }
+}

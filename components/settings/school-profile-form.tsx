@@ -277,7 +277,7 @@ export function SchoolProfileForm({ initialProfile }: SchoolProfileFormProps) {
             <Input
               name="schoolName"
               defaultValue={profile.schoolName}
-              placeholder="e.g. Mountains High College and International School"
+              placeholder="e.g. Donewell Academy"
               className="h-9 text-sm mt-1"
               required
             />

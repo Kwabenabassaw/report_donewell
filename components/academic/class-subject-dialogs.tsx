@@ -47,8 +47,31 @@ interface SubjectData {
   status: string
 }
 
+export const STANDARD_GRADE_LEVELS = [
+  "Creche",
+  "Nursery 1",
+  "Nursery 2",
+  "KG 1",
+  "KG 2",
+  "Primary 1",
+  "Primary 2",
+  "Primary 3",
+  "Primary 4",
+  "Primary 5",
+  "Primary 6",
+  "Basic 7",
+  "Basic 8",
+  "Basic 9",
+  "SHS 1",
+  "SHS 2",
+  "SHS 3",
+]
+
 export function CreateClassDialog({ teachers }: { teachers: TeacherOption[] }) {
   const [open, setOpen] = useState(false)
+  const [isCustomGrade, setIsCustomGrade] = useState(false)
+  const [selectedGrade, setSelectedGrade] = useState("Basic 7")
+  const [customGrade, setCustomGrade] = useState("")
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -73,6 +96,8 @@ export function CreateClassDialog({ teachers }: { teachers: TeacherOption[] }) {
           action={async (formData) => {
             await createClassAction(formData)
             setOpen(false)
+            setIsCustomGrade(false)
+            setCustomGrade("")
           }}
           className="flex flex-col gap-4"
         >
@@ -84,24 +109,68 @@ export function CreateClassDialog({ teachers }: { teachers: TeacherOption[] }) {
               <Input name="name" placeholder="e.g. Basic 7A" required />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Grade Level
-              </label>
-              <select
-                name="gradeLevel"
-                className="h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-xs focus:ring-2 focus:ring-primary outline-none"
-                required
-              >
-                <option value="Basic 7">Basic 7 (JHS 1)</option>
-                <option value="Basic 8">Basic 8 (JHS 2)</option>
-                <option value="Basic 9">Basic 9 (JHS 3)</option>
-                <option value="Primary 1">Primary 1</option>
-                <option value="Primary 2">Primary 2</option>
-                <option value="Primary 3">Primary 3</option>
-                <option value="Primary 4">Primary 4</option>
-                <option value="Primary 5">Primary 5</option>
-                <option value="Primary 6">Primary 6</option>
-              </select>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Grade Level
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsCustomGrade(!isCustomGrade)}
+                  className="text-[11px] text-primary hover:underline font-medium"
+                >
+                  {isCustomGrade ? "Select standard" : "Type custom"}
+                </button>
+              </div>
+              {isCustomGrade ? (
+                <Input
+                  name="gradeLevel"
+                  value={customGrade}
+                  onChange={(e) => setCustomGrade(e.target.value)}
+                  placeholder="e.g. Nursery 1, Grade 4"
+                  required
+                />
+              ) : (
+                <select
+                  name="gradeLevel"
+                  value={selectedGrade}
+                  onChange={(e) => {
+                    if (e.target.value === "__CUSTOM__") {
+                      setIsCustomGrade(true)
+                    } else {
+                      setSelectedGrade(e.target.value)
+                    }
+                  }}
+                  className="h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-xs focus:ring-2 focus:ring-primary outline-none"
+                  required
+                >
+                  <optgroup label="Junior High (JHS)">
+                    <option value="Basic 7">Basic 7 (JHS 1)</option>
+                    <option value="Basic 8">Basic 8 (JHS 2)</option>
+                    <option value="Basic 9">Basic 9 (JHS 3)</option>
+                  </optgroup>
+                  <optgroup label="Primary School">
+                    <option value="Primary 1">Primary 1</option>
+                    <option value="Primary 2">Primary 2</option>
+                    <option value="Primary 3">Primary 3</option>
+                    <option value="Primary 4">Primary 4</option>
+                    <option value="Primary 5">Primary 5</option>
+                    <option value="Primary 6">Primary 6</option>
+                  </optgroup>
+                  <optgroup label="Preschool / Kindergarten">
+                    <option value="Creche">Creche</option>
+                    <option value="Nursery 1">Nursery 1</option>
+                    <option value="Nursery 2">Nursery 2</option>
+                    <option value="KG 1">KG 1</option>
+                    <option value="KG 2">KG 2</option>
+                  </optgroup>
+                  <optgroup label="Senior High (SHS)">
+                    <option value="SHS 1">SHS 1</option>
+                    <option value="SHS 2">SHS 2</option>
+                    <option value="SHS 3">SHS 3</option>
+                  </optgroup>
+                  <option value="__CUSTOM__">✨ Other / Custom Grade...</option>
+                </select>
+              )}
             </div>
           </div>
 
@@ -186,7 +255,18 @@ export function EditClassDialog({
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Grade Level
               </label>
-              <Input name="gradeLevel" defaultValue={cls.gradeLevel} required />
+              <Input
+                name="gradeLevel"
+                defaultValue={cls.gradeLevel}
+                list="edit-grade-levels-list"
+                placeholder="e.g. Basic 7 or Primary 1"
+                required
+              />
+              <datalist id="edit-grade-levels-list">
+                {STANDARD_GRADE_LEVELS.map((g) => (
+                  <option key={g} value={g} />
+                ))}
+              </datalist>
             </div>
           </div>
 

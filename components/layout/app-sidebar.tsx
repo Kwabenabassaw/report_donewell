@@ -214,8 +214,8 @@ const NAVIGATION_GROUPS: NavGroup[] = [
 export function AppSidebar({
   user,
   school = {
-    name: "Mountains High College and International School",
-    code: "MHCIS-001",
+    name: "Donewell Academy",
+    code: "DWA-001",
     term: "First Term (2026/2027)",
     crestUrl: null,
   },

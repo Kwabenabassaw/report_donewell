@@ -308,7 +308,7 @@ export function OnboardingWizard({ initialData }: OnboardingWizardProps) {
             </div>
             <div>
               <h2 className="text-base font-bold tracking-tight text-foreground">
-                {roleContext.schoolProfile?.schoolName || "Mountains High College and International School"}
+                {roleContext.schoolProfile?.schoolName || "Donewell Academy"}
               </h2>
               <p className="text-xs text-muted-foreground">First-Time Setup & Orientation</p>
             </div>

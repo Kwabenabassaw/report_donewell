@@ -12,10 +12,10 @@ export default async function LoginPage() {
     profile = await SchoolProfileService.getProfile()
   } catch {
     profile = {
-      schoolName: "Mountains High College and International School",
-      schoolCode: "MHCIS-001",
+      schoolName: "Donewell Academy",
+      schoolCode: "DWA-001",
       motto: "Knowledge, Integrity, and Excellence",
-      crestUrl: "/uploads/logos/school-logo-1790992124693.PNG",
+      crestUrl: null,
     } as any
   }
 
@@ -45,7 +45,7 @@ export default async function LoginPage() {
           </div>
           <div className="flex flex-col items-center">
             <span className="font-bold text-base tracking-tight text-foreground">
-              {profile?.schoolName || "Mountains High College and International School"}
+              {profile?.schoolName || "Donewell Academy"}
             </span>
             <span className="text-xs text-muted-foreground font-mono mt-0.5">
               {profile?.motto || "Knowledge, Integrity, and Excellence"}

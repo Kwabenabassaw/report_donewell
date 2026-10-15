@@ -60,8 +60,8 @@ export default async function RootLayout({
     currentAcademicYear?.terms?.[0]
 
   const schoolData = {
-    name: schoolProfile?.schoolName || "Mountains High College and International School",
-    code: schoolProfile?.schoolCode || "MHCIS-001",
+    name: schoolProfile?.schoolName || "Donewell Academy",
+    code: schoolProfile?.schoolCode || "DWA-001",
     motto: schoolProfile?.motto || "Knowledge, Integrity, and Excellence",
     crestUrl: schoolProfile?.crestUrl || null,
     term: currentAcademicYear && activeTerm

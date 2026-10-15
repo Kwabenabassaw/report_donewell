@@ -541,7 +541,7 @@ internet connection to print these report cards.
     }
 
     return `
-      <div class="w-full max-w-4xl bg-white text-slate-900 border border-slate-300 p-8 flex flex-col gap-6 font-sans mx-auto">
+      <div class="report-sheet-container a4-report-sheet w-full max-w-4xl bg-white text-slate-900 border border-slate-300 p-6 flex flex-col gap-3 font-sans mx-auto">
         ${headerHtml}
         ${studentInfoHtml}
         ${perfStripHtml}
@@ -803,7 +803,7 @@ internet connection to print these report cards.
 
     /* Tables */
     table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 8px; }
+    th, td { padding: 6px 8px; font-size: 11px; }
     tbody tr:nth-child(even) { background-color: #f8fafc; }
 
     /* Page Breaks for Multi-Page Printing */
@@ -817,7 +817,7 @@ internet connection to print these report cards.
     /* Print Media Styles */
     @page {
       size: A4 portrait;
-      margin: 8mm;
+      margin: 10mm 12mm;
     }
     @media print {
       body {
@@ -834,6 +834,11 @@ internet connection to print these report cards.
         padding: 0 !important;
         margin: 0 auto !important;
         max-width: 100% !important;
+        height: 275mm !important;
+        min-height: 275mm !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
         page-break-inside: avoid;
         break-inside: avoid;
       }
