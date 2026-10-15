@@ -85,31 +85,24 @@ export class UserService {
 
     const passwordHash = await bcrypt.hash(input.password, 10)
 
-    const user = await prisma.$transaction(async (tx) => {
-      const newUser = await tx.user.create({
-        data: {
-          username: cleanUsername,
-          displayName: input.displayName.trim(),
-          email: cleanEmail,
-          passwordHash,
-          status: "ACTIVE",
+    // Pre-fetch roles in a single query outside of any transaction
+    const roles = await prisma.role.findMany({
+      where: { name: { in: input.roles } },
+    })
+
+    const user = await prisma.user.create({
+      data: {
+        username: cleanUsername,
+        displayName: input.displayName.trim(),
+        email: cleanEmail,
+        passwordHash,
+        status: "ACTIVE",
+        userRoles: {
+          create: roles.map((role) => ({
+            roleId: role.id,
+          })),
         },
-      })
-
-      // Assign requested roles
-      for (const roleName of input.roles) {
-        const role = await tx.role.findUnique({ where: { name: roleName } })
-        if (role) {
-          await tx.userRole.create({
-            data: {
-              userId: newUser.id,
-              roleId: role.id,
-            },
-          })
-        }
-      }
-
-      return newUser
+      },
     })
 
     await AuditService.logAction({
@@ -184,21 +177,19 @@ export class UserService {
    * Reassigns roles for a user.
    */
   static async updateUserRoles(userId: string, roleNames: string[], actorUserId?: string) {
-    await prisma.$transaction(async (tx) => {
-      await tx.userRole.deleteMany({ where: { userId } })
-
-      for (const roleName of roleNames) {
-        const role = await tx.role.findUnique({ where: { name: roleName } })
-        if (role) {
-          await tx.userRole.create({
-            data: {
-              userId,
-              roleId: role.id,
-            },
-          })
-        }
-      }
+    const roles = await prisma.role.findMany({
+      where: { name: { in: roleNames } },
     })
+
+    await prisma.$transaction([
+      prisma.userRole.deleteMany({ where: { userId } }),
+      prisma.userRole.createMany({
+        data: roles.map((r) => ({
+          userId,
+          roleId: r.id,
+        })),
+      }),
+    ])
 
     await AuditService.logAction({
       userId: actorUserId,
@@ -260,34 +251,42 @@ export class UserService {
       passwordHash = await bcrypt.hash(input.password, 10)
     }
 
-    const updated = await prisma.$transaction(async (tx) => {
-      const u = await tx.user.update({
-        where: { id: userId },
-        data: {
-          ...(cleanDisplayName ? { displayName: cleanDisplayName } : {}),
-          ...(cleanEmail !== undefined ? { email: cleanEmail } : {}),
-          ...(input.status ? { status: input.status } : {}),
-          ...(passwordHash ? { passwordHash } : {}),
-        },
-      })
+    const roles =
+      input.roles && input.roles.length > 0
+        ? await prisma.role.findMany({ where: { name: { in: input.roles } } })
+        : []
 
-      if (input.roles && input.roles.length > 0) {
-        await tx.userRole.deleteMany({ where: { userId } })
-        for (const roleName of input.roles) {
-          const role = await tx.role.findUnique({ where: { name: roleName } })
-          if (role) {
-            await tx.userRole.create({
-              data: {
+    const updated = await prisma.$transaction(
+      async (tx) => {
+        const u = await tx.user.update({
+          where: { id: userId },
+          data: {
+            ...(cleanDisplayName ? { displayName: cleanDisplayName } : {}),
+            ...(cleanEmail !== undefined ? { email: cleanEmail } : {}),
+            ...(input.status ? { status: input.status } : {}),
+            ...(passwordHash ? { passwordHash } : {}),
+          },
+        })
+
+        if (input.roles && input.roles.length > 0) {
+          await tx.userRole.deleteMany({ where: { userId } })
+          if (roles.length > 0) {
+            await tx.userRole.createMany({
+              data: roles.map((r) => ({
                 userId,
-                roleId: role.id,
-              },
+                roleId: r.id,
+              })),
             })
           }
         }
-      }
 
-      return u
-    })
+        return u
+      },
+      {
+        maxWait: 10000,
+        timeout: 20000,
+      }
+    )
 
     await AuditService.logAction({
       userId: actorUserId,
